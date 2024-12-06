@@ -1,15 +1,39 @@
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { useState, useRef } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View, Image, Dimensions, Alert } from 'react-native';
+import { Button, Text, TouchableOpacity, View, Image, Dimensions, Alert } from 'react-native';
+import styles from '../Styles/styles';
+import { useEffect } from 'react';
+import { initializeDatabase,insertImage,getAllImages } from '../Database/sqlite';
 
-export default function App() {
+
+export default function Camera() {
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState(null);
   const [locationData, setLocationData] = useState(null);
+  const [images, setImages] = useState([]);
+  const [database, setDatabase] = useState(null);
   const cameraRef = useRef(null);
 
+  // INITIALIZE DATABASE
+  useEffect(() => {
+    const setupDatabase = async () => {
+      try {
+        const db = await initializeDatabase();
+        setDatabase(db);
+
+        // Fetch existing images
+        const storedImages = await getAllImages(db);
+        setImages(storedImages);
+      } catch (error) {
+        Alert.alert('Database Error', error.message || 'Failed to initialize database', [
+          { text: 'OK' },
+        ]);
+      }
+    };
+    setupDatabase();
+  }, []);
   // Get screen dimensions
   const { width, height } = Dimensions.get('window');
 
@@ -93,6 +117,17 @@ export default function App() {
           base64: true,
         });
 
+        const imageData = {
+            uri: photo.uri,
+            date: location.date,
+            time: location.time,
+            latitude: location.latitude,
+            longitude: location.longitude
+          };
+
+          const insertedId = await insertImage(database, imageData);
+          console.log('Image inserted with ID:', insertedId);
+
         // Set both image and location
         setCapturedImage(photo.uri);
         setLocationData(location);
@@ -145,7 +180,7 @@ export default function App() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.containerCamera}>
       <CameraView 
         style={styles.camera} 
         facing={facing}
@@ -164,97 +199,3 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  fullScreenContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  message: {
-    textAlign: 'center',
-    paddingBottom: 10,
-  },
-  camera: {
-    flex: 1,
-  },
-  buttonContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    margin: 64,
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-  },
-  button: {
-    alignSelf: 'flex-end',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: 10,
-    borderRadius: 10,
-  },
-  text: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  captureButton: {
-    width: 70,
-    height: 70,
-    bottom: 0,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-    borderWidth: 3,
-    borderColor: 'white',
-  },
-  captureInnerButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'white',
-  },
-  capturedImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  overlayButtonContainer: {
-    position: 'absolute',
-    bottom: 50,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  retakeButton: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-  },
-  retakeButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  locationInfoContainer: {
-    justifyContent:"center",
-    flexDirection:"row",
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 10,
-    alignItems: 'center',
-    gap:10
-  },
-  locationInfoText: {
-    color: 'white',
-    fontSize: 16,
-  },
-});

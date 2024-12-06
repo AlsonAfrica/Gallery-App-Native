@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gallery-App",
     "slug": "Gallery-App",
-     "scheme": "Gallery-App",
+    "scheme": "Gallery-App",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -40,7 +40,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow GalleryApp to use your location."
         }
-      ]
+      ],
+      "expo-sqlite"
     ]
   }
 }
